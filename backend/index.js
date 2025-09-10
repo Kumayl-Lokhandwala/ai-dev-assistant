@@ -3,6 +3,8 @@ import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
 import authRoutes from "./routes/authRoutes.js";
+import generationRoutes from "./routes/generationRoutes.js";
+import projectRoutes from "./routes/projectRoutes.js";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -25,6 +27,8 @@ app.get("/api", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/generation", generationRoutes);
+app.use("/api/projects", projectRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err.stack);
