@@ -6,7 +6,6 @@ import {
 } from "@aws-sdk/client-s3";
 import "dotenv/config";
 
-// The S3 client will automatically use the AWS credentials from your .env file
 const s3Client = new S3Client({ region: process.env.AWS_REGION });
 
 export async function uploadFileToS3(key, content) {

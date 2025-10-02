@@ -9,7 +9,11 @@ import projectRoutes from "./routes/projectRoutes.js";
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+app.use(
+  cors({
+    exposedHeaders: ["Content-Disposition"],
+  })
+);
 app.use(express.json());
 
 app.use((req, res, next) => {

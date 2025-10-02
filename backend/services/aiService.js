@@ -29,7 +29,7 @@ The JSON schema is:
  * @returns {Promise<object>} The parsed JSON object from the AI.
  */
 export async function generateBoilerplate(prompt) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro-latest:generateContent?key=${GEMINI_API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
   const requestBody = {
     systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
@@ -40,7 +40,7 @@ export async function generateBoilerplate(prompt) {
   };
 
   try {
-    const response = await axios.post(url, requestBody, { timeout: 30000 });
+    const response = await axios.post(url, requestBody, { timeout: 80000 });
     const responseJsonText = response.data.candidates[0].content.parts[0].text;
     return JSON.parse(responseJsonText);
   } catch (error) {

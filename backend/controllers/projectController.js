@@ -1,5 +1,10 @@
 import Project from "../models/Project.js";
-import { deleteFilesFromS3 } from "../services/s3service.js";
+import {
+  deleteFilesFromS3,
+  getFileStreamFromS3,
+  uploadFileToS3,
+} from "../services/s3service.js";
+import archiver from "archiver";
 
 export const getProjects = async (req, res) => {
   try {
@@ -85,22 +90,22 @@ export const updateProjectFile = async (req, res) => {
   }
 };
 
-export const getProjectById = async (req, res) => {
-  try {
-    const project = await Project.findOne({
-      _id: req.params.id,
-      user: req.user._id,
-    }).lean();
-    if (!project) {
-      return res.status(404).json({ message: "Project not found." });
-    }
-    // Note: We don't fetch file content here for performance.
-    // The frontend can fetch individual files as needed.
-    res.status(200).json(project);
-  } catch (error) {
-    res.status(500).json({ message: "Server error while fetching project." });
-  }
-};
+// export const getProjectById = async (req, res) => {
+//   try {
+//     const project = await Project.findOne({
+//       _id: req.params.id,
+//       user: req.user._id,
+//     }).lean();
+//     if (!project) {
+//       return res.status(404).json({ message: "Project not found." });
+//     }
+//     // Note: We don't fetch file content here for performance.
+//     // The frontend can fetch individual files as needed.
+//     res.status(200).json(project);
+//   } catch (error) {
+//     res.status(500).json({ message: "Server error while fetching project." });
+//   }
+// };
 
 export const createProject = async (req, res) => {
   const { projectName, description, techStack } = req.body;
@@ -182,22 +187,71 @@ export const downloadProject = async (req, res) => {
       _id: req.params.id,
       user: req.user._id,
     });
-    if (!project)
+    if (!project) {
       return res.status(404).json({ message: "Project not found." });
+    }
 
+    // Set the headers to trigger a file download
     res.attachment(`${project.projectName}.zip`);
+
     const archive = archiver("zip");
     archive.pipe(res);
 
+    // Add each file from S3 to the archive
     for (const file of project.files) {
       const s3Key = `projects/${project.user}/${project._id}/${file.path}`;
       const fileStream = await getFileStreamFromS3(s3Key);
       archive.append(fileStream, { name: file.path });
     }
+
     await archive.finalize();
   } catch (error) {
+    console.error("Error downloading project:", error);
     res
       .status(500)
       .json({ message: "Server error while downloading project." });
+  }
+};
+
+const streamToString = (stream) => {
+  const chunks = [];
+  return new Promise((resolve, reject) => {
+    stream.on("data", (chunk) => chunks.push(Buffer.from(chunk)));
+    stream.on("error", (err) => reject(err));
+    stream.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
+  });
+};
+
+// GET /api/projects/:id - Fetch a single project with all file content
+export const getProjectById = async (req, res) => {
+  try {
+    const project = await Project.findOne({
+      _id: req.params.id,
+      user: req.user._id,
+    }).lean();
+    if (!project) {
+      return res.status(404).json({ message: "Project not found." });
+    }
+
+    // Fetch the content for each file from S3 in parallel
+    const filesWithContent = await Promise.all(
+      project.files.map(async (file) => {
+        const s3Key = `projects/${project.user}/${project._id}/${file.path}`;
+        try {
+          const stream = await getFileStreamFromS3(s3Key);
+          const content = await streamToString(stream);
+          return { ...file, content };
+        } catch (error) {
+          return {
+            ...file,
+            content: `// Error loading file: ${error.message}`,
+          };
+        }
+      })
+    );
+
+    res.status(200).json({ ...project, files: filesWithContent });
+  } catch (error) {
+    res.status(500).json({ message: "Server error while fetching project." });
   }
 };

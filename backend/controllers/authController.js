@@ -84,3 +84,8 @@ export const loginUser = async (req, res) => {
       .json({ message: "An unexpected server error occurred during login." });
   }
 };
+
+export const getMe = async (req, res) => {
+  // req.user is attached by the auth middleware
+  res.status(200).json(req.user);
+};

@@ -9,6 +9,7 @@ import {
   updateProjectFile,
   deleteFileFromProject,
   downloadProject,
+  // getProjectFileContent,
 } from "../controllers/projectController.js";
 import auth from "../middleware/auth.js";
 
@@ -24,5 +25,7 @@ router.post("/:id/file", auth, addFileToProject);
 router.patch("/:id/file", auth, updateProjectFile);
 router.delete("/:id/file", auth, deleteFileFromProject);
 router.get("/download/:id", auth, downloadProject);
+
+// router.get("/:id/file", auth, getProjectFileContent);
 
 export default router;
